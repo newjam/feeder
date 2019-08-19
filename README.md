@@ -1,6 +1,10 @@
 # feeder
 
-A little RSS/Atom feed reader hobby project.
+A humble RSS/Atom feed reader hobby project.
+
+## Prerequisites
+
+You need Haskell and cabal installed. You also need a postgres server (currently the connection parameters are hardcoded). To build, I think you just need to do a `cabal install`.
 
 ## Usage
 
