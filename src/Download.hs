@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Download (importFeed) where
 
 import Database
@@ -16,7 +14,9 @@ import Data.Maybe (catMaybes)
 
 downloadFeed :: String -> IO Feed
 downloadFeed url = do
-  response <- get url
+  let acceptableTypes = ["application/atom+xml", "application/atom+rss"]
+  let opts = defaults & header "Accept" .~ acceptableTypes
+  response <- getWith opts url
   case parseFeedSource $ response ^. responseBody of
     Nothing   -> error "error parsing feed"
     Just feed -> return feed
