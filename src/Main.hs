@@ -1,21 +1,35 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main (main) where
+module Main where
 
-import Network.HTTP.Req
-import Text.Feed.Import
-import Text.Feed.Query
-import Data.ByteString.Lazy(fromStrict)
+import Options.Applicative
+import Data.Semigroup ((<>))
 
-get url = req GET url NoReqBody bsResponse mempty
+import qualified Database
+import qualified Server
+import qualified Download
 
-getFeedRequest = get (https "theintercept.com" /: "feed")
+data Command = Migrate | Serve | Import
 
-main :: IO ()
-main = do
-  response <- runReq defaultHttpConfig getFeedRequest
-  let body = fromStrict . responseBody $ response
-  case parseFeedSource body of
-    Nothing   -> error "error reading feed"
-    Just feed -> print . getFeedTitle $ feed
+commands = subparser (migrateCommand <> serveCommand <> importCommand)
 
+migrateCommand = command "migrate" (info
+    (pure Migrate)
+    (progDesc "migrate application database")
+  )
+
+serveCommand = command "serve" (info
+    (pure Serve)
+    (progDesc "serve web application")
+  )
+
+importCommand = command "import" (info
+    (pure Import)
+    (progDesc "import feeds to database")
+  )
+
+main = execParser (info (commands <**> helper) fullDesc) >>= run
+
+run Migrate = Database.migrate
+run Serve   = Server.serve
+run Import  = Download.importFeeds
