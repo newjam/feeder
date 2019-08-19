@@ -1,45 +1,40 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Download (downloadFeed, importItems, importFeeds) where
+module Download (importFeed) where
 
-import Control.Monad.IO.Class
+import Database
 
-import Network.HTTP.Req
+import Network.Wreq
+import Control.Lens
+
 import Text.Feed.Types
 import Text.Feed.Import
 import Text.Feed.Query
-import Data.ByteString.Lazy(fromStrict)
-import Database
 
-import Control.Monad (void)
-
+import Control.Monad (join)
 import Data.Maybe (catMaybes)
-import Data.Time (parseTimeOrError, defaultTimeLocale, rfc822DateFormat)
-import qualified Data.Text as T
 
-parseTime = parseTimeOrError True defaultTimeLocale rfc822DateFormat . T.unpack
+downloadFeed :: String -> IO Feed
+downloadFeed url = do
+  response <- get url
+  case parseFeedSource $ response ^. responseBody of
+    Nothing   -> error "error parsing feed"
+    Just feed -> return feed
 
-get url = req GET url NoReqBody bsResponse mempty
-
---getFeedRequest = get (https "theintercept.com" /: "feed")
-getFeedRequest = get (https "www.theguardian.com" /: "world" /: "rss")
---getFeedRequest = get (https "news.ycombinator.com" /: "rss")
-
-throwErrors Nothing  = error "error parsing feed"
-throwErrors (Just f) = f
-
-downloadFeed :: MonadIO io => io Feed
-downloadFeed = throwErrors . parseFeedSource . fromStrict . responseBody <$> runReq defaultHttpConfig getFeedRequest
+downloadFeedItems url = toFeedItems <$> downloadFeed url
 
 toFeedItem item = FeedItem
   <$> (fmap snd . getItemId $ item)
   <*> getItemTitle item
   <*> getItemLink item
-  <*> (fmap parseTime . getItemDate $ item)
+  <*> (join . getItemPublishDate $ item)
 
 toFeedItems = catMaybes . map toFeedItem . getFeedItems
 
-importItems conn = downloadFeed >>= insertFeedItems conn . toFeedItems
+report url n = putStrLn ("Imported " ++ (show n) ++ " items from " ++ url)
 
-importFeeds = void $ connect connectInfo >>= importItems
-
+importFeed url = do
+  items <- downloadFeedItems url
+  conn  <- connect connectInfo
+  count <- insertFeedItems conn items
+  report url count

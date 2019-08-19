@@ -18,7 +18,8 @@ executable feeder
 --                       -fwarn-tabs
 --                       -fwarn-incomplete-uni-patterns
   build-depends:       base >=4.9 && <4.10,
-                       req,
+                       wreq,
+                       lens,
                        bytestring,
                        feed,
                        blaze-html,

@@ -20,9 +20,9 @@ import qualified Data.Text as T
 
 import qualified Network.Wai.Handler.Warp as Warp
 
-serve = do
-  putStrLn "serving on http://localhost:3000/"
-  Warp.run 3000 application
+serve port = do
+  putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
+  Warp.run port application
 
 
 type API = Servant.Get '[HTML] Homepage

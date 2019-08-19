@@ -79,7 +79,7 @@ insertFeedItem conn = execute conn insertFeedItemStatement
 insertFeedItems :: Connection -> [FeedItem] -> IO Int64
 insertFeedItems conn = executeMany conn insertFeedItemStatement
 
-selectFeedItemQuery = "select guid, title, link, date from feed_item limit ? offset ?"
+selectFeedItemQuery = "select guid, title, link, date from feed_item order by date desc limit ? offset ?"
 
 defaultFeedItemQueryOptions = (100 :: Integer, 0 :: Integer)
 
