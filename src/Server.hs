@@ -1,5 +1,7 @@
-{-# LANGUAGE DataKinds, TypeOperators #-}
+{-# LANGUAGE DataKinds, TypeOperators, LambdaCase #-}
 module Server (serve) where
+
+import System.Exit
 
 import Database
 
@@ -19,8 +21,13 @@ import Paths_feeder
 
 serve connInfo port = do
   staticDir <- liftIO $ getDataFileName "data/static"
-  putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
-  Warp.run port (application staticDir connInfo)
+  Database.validate connInfo >>= \case
+    MigrationError e -> do
+      putStrLn $ "Database invalid: " ++ e
+      exitFailure
+    MigrationSuccess -> do
+      putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
+      Warp.run port (application staticDir connInfo)
 
 type API = (Servant.Get '[HTML] Homepage)
       Servant.:<|> ("static" Servant.:> Servant.Raw)
@@ -30,7 +37,7 @@ api :: Servant.Proxy API
 api = Servant.Proxy
 
 
---server :: ConnectInfo -> Servant.Server API
+server :: FilePath -> ConnectInfo -> Servant.Server API
 server staticDir connInfo = (renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)) Servant.:<|> Servant.serveDirectoryWebApp staticDir
 
 application staticDir connInfo = do

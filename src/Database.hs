@@ -1,6 +1,8 @@
 module Database (
-  connect, ConnectInfo(..), defaultConnectInfo,
+  connect, defaultConnectInfo,
+  ConnectInfo(..), MigrationResult(..),
   migrate, migrateWith,
+  validate, validateWith,
   FeedItem (..),
   insertFeedItems, insertFeedItem,
   selectFeedItems
@@ -28,11 +30,27 @@ import Data.Int
 initialization = MigrationContext MigrationInitialization True
 migrations dir = MigrationContext (MigrationDirectory dir) True
 
+validateInitialization = MigrationContext (MigrationValidation MigrationInitialization) False
+validateMigrations dir = MigrationContext (MigrationValidation (MigrationDirectory dir)) False
+
 migrateWith conn = do
   runMigration $ initialization conn
   path <- getDataFileName "data/migrations"
   withTransaction conn $ runMigration $ migrations path conn
   return ()
+
+validateWith conn = do
+  path <- getDataFileName "data/migrations"
+  initResult <- runMigration $ validateInitialization conn
+  case initResult of
+    MigrationError e -> return (MigrationError e)
+    MigrationSuccess -> do
+      migrateResult <- runMigration $ validateMigrations path conn
+      case migrateResult of
+        MigrationError e -> return (MigrationError e)
+        MigrationSuccess -> return MigrationSuccess
+
+validate connectInfo = connect connectInfo >>= validateWith
 
 migrate connectInfo = connect connectInfo >>= migrateWith
 
