@@ -10,6 +10,8 @@ import Control.Monad
 import Control.Applicative
 import Control.Monad.IO.Class
 
+import Paths_feeder
+
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Migration
 import GHC.Generics (Generic)
@@ -23,13 +25,13 @@ import qualified Data.Text as T
 
 import Data.Int
 
-migrationDirectory = MigrationDirectory "db/migrations"
 initialization = MigrationContext MigrationInitialization True
-migrations = MigrationContext migrationDirectory True
+migrations dir = MigrationContext (MigrationDirectory dir) True
 
 migrateWith conn = do
   runMigration $ initialization conn
-  withTransaction conn $ runMigration $ migrations conn
+  path <- getDataFileName "data/migrations"
+  withTransaction conn $ runMigration $ migrations path conn
   return ()
 
 migrate connectInfo = connect connectInfo >>= migrateWith
@@ -51,7 +53,6 @@ instance ToRow FeedItem where
 
 instance FromRow FeedItem where
   fromRow = FeedItem <$> field <*> field <*> field <*> field
-
 
 insertFeedItemStatement = "insert into feed_item (guid, title, link, date) values (?, ?, ?, ?) on conflict on constraint feed_item_pkey do nothing"
 

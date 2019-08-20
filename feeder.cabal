@@ -9,6 +9,8 @@ category:            Web
 build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
+data-files:          data/migrations/*.sql
+other-modules:       Paths_feeder
 
 executable feeder
   main-is:             Main.hs
