@@ -29,14 +29,11 @@ import Data.Monoid ((<>))
 
 import Data.Int
 
-initialization = MigrationContext MigrationInitialization True
-migrations dir = MigrationContext (MigrationDirectory dir) True
-
 migrateWith conn = do
-  runMigration $ initialization conn
   path <- getDataFileName "data/migrations"
-  withTransaction conn $ runMigration $ migrations path conn
-  return ()
+  let migration = MigrationInitialization <> MigrationDirectory path
+  let migrationContext = MigrationContext migration True conn
+  withTransaction conn $ runMigration migrationContext
 
 validateWith conn = do
   path <- getDataFileName "data/migrations"

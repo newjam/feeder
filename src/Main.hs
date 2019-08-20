@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main (main) where
 
 import Options.Applicative
@@ -6,6 +8,8 @@ import Data.Semigroup ((<>))
 import qualified Database
 import qualified Server
 import qualified Download
+
+import System.Exit
 
 import Database.PostgreSQL.Simple.URL (parseDatabaseUrl)
 import Database.PostgreSQL.Simple (ConnectInfo)
@@ -51,6 +55,8 @@ databaseUrl = option (maybeReader parseDatabaseUrl)
 parser = info (commands <**> helper) fullDesc
 
 main = execParser parser >>= \command -> case command of
-  Migrate connInfo      -> Database.migrate    connInfo
+  Migrate connInfo      -> Database.migrate    connInfo >>= \case
+    Database.MigrationSuccess -> exitSuccess
+    Database.MigrationError e -> exitFailure
   Serve   connInfo port -> Server.serve        connInfo port
   Import  connInfo url  -> Download.importFeed connInfo url
