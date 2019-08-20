@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds, TypeOperators #-}
 module Server (serve) where
 
 import Database
@@ -15,20 +15,26 @@ import Control.Monad.IO.Class
 
 import qualified Network.Wai.Handler.Warp as Warp
 
-serve connInfo port = do
-  putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
-  Warp.run port (application connInfo)
+import Paths_feeder
 
-type API = Servant.Get '[HTML] Homepage
+serve connInfo port = do
+  staticDir <- liftIO $ getDataFileName "data/static"
+  putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
+  Warp.run port (application staticDir connInfo)
+
+type API = (Servant.Get '[HTML] Homepage)
+      Servant.:<|> ("static" Servant.:> Servant.Raw)
 type Homepage = Html
 
 api :: Servant.Proxy API
 api = Servant.Proxy
 
-server :: ConnectInfo -> Servant.Server API
-server connInfo = renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)
 
-application connInfo = Servant.serve api (server connInfo)
+--server :: ConnectInfo -> Servant.Server API
+server staticDir connInfo = (renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)) Servant.:<|> Servant.serveDirectoryWebApp staticDir
+
+application staticDir connInfo = do
+  Servant.serve api (server staticDir connInfo)
 
 renderFeedItem :: FeedItem -> Html
 renderFeedItem item = li $ a ! (href . textValue . Database.link $ item) $ (toMarkup . Database.title $ item)
@@ -37,6 +43,7 @@ renderFeed :: [FeedItem] -> Html
 renderFeed items = docTypeHtml $ do
   H.head $ do
     H.title "News"
+    H.link ! rel "stylesheet" ! type_ "text/css" ! href "static/feeder.css"
   body $ do
     h1 $ "News"
     ul $ forM_ items renderFeedItem

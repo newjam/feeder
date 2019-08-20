@@ -10,6 +10,7 @@ build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 data-files:          data/migrations/*.sql
+                     data/static/*.css
 other-modules:       Paths_feeder
 
 executable feeder
