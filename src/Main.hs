@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-
-module Main where
+module Main (main) where
 
 import Options.Applicative
 import Data.Semigroup ((<>))
@@ -9,38 +7,50 @@ import qualified Database
 import qualified Server
 import qualified Download
 
-data Command = Migrate | Serve Int | Import String
+import Database.PostgreSQL.Simple.URL (parseDatabaseUrl)
+import Database.PostgreSQL.Simple (ConnectInfo)
+
+data Command = Migrate ConnectInfo | Serve ConnectInfo Int | Import ConnectInfo String
 
 commands = subparser (migrateCommand <> serveCommand <> importCommand)
 
 migrateCommand = command "migrate" (info
-    (pure Migrate)
+    (migrateOptions <**> helper)
     (progDesc "migrate application database")
   )
 
 serveCommand = command "serve" (info
-    serveOptions
+    (serveOptions <**> helper)
     (progDesc "serve web application")
   )
 
-serveOptions = Serve <$> (option auto
-          ( long "port"
-         <> help "Port to serve on"
-         <> showDefault
-         <> value 3000
-         <> metavar "PORT"))
-
 importCommand = command "import" (info
-    importOptions
+    (importOptions <**> helper)
     (progDesc "import Atom or RSS feed from URL")
   )
 
-importUrlOption = argument str (metavar "URL")
+migrateOptions = Migrate <$> databaseUrl
+serveOptions   = Serve   <$> databaseUrl <*> port
+importOptions  = Import  <$> databaseUrl <*> importUrl
 
-importOptions = Import <$> importUrlOption
+port = option auto (
+     long "port"
+  <> help "Port to serve on"
+  <> showDefault
+  <> value 3000
+  <> metavar "PORT")
 
-main = execParser (info (commands <**> helper) fullDesc) >>= run
+importUrl = argument str (metavar "FEED_URL")
 
-run Migrate      = Database.migrate
-run (Serve port) = Server.serve port
-run (Import url) = Download.importFeed url
+databaseUrl = option (maybeReader parseDatabaseUrl)
+          ( long "database-url"
+         <> value Database.defaultConnectInfo
+         <> metavar "DB_URL"
+         <> help "url of postgres database")
+
+parser = info (commands <**> helper) fullDesc
+
+main = execParser parser >>= \command -> case command of
+  Migrate connInfo      -> Database.migrate    connInfo
+  Serve   connInfo port -> Server.serve        connInfo port
+  Import  connInfo url  -> Download.importFeed connInfo url

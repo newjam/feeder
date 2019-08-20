@@ -25,6 +25,7 @@ executable feeder
                        text,
                        postgresql-simple,
                        postgresql-simple-migration,
+                       postgresql-simple-url,
                        optparse-applicative,
                        time
   hs-source-dirs:      src

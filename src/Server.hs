@@ -1,50 +1,43 @@
-{-# LANGUAGE OverloadedStrings, DataKinds #-}
-
+{-# LANGUAGE DataKinds #-}
 module Server (serve) where
 
-import Download
 import Database
 
 import qualified Servant
 import           Servant.HTML.Blaze
-import           Text.Feed.Query
-import qualified Text.Blaze.Html5   as H
-import qualified Text.Blaze.Html5.Attributes   as A
 
-import Data.Maybe(catMaybes)
+import Text.Blaze.Html5 as H
+import Text.Blaze.Html5.Attributes
+
 import Control.Monad(forM_)
 
 import Control.Monad.IO.Class
 
-import qualified Data.Text as T
-
 import qualified Network.Wai.Handler.Warp as Warp
 
-serve port = do
+serve connInfo port = do
   putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
-  Warp.run port application
-
+  Warp.run port (application connInfo)
 
 type API = Servant.Get '[HTML] Homepage
-type Homepage = H.Html
+type Homepage = Html
 
 api :: Servant.Proxy API
 api = Servant.Proxy
 
-server :: Servant.Server API
-server = renderFeed <$> liftIO (connect connectInfo >>= selectFeedItems)
+server :: ConnectInfo -> Servant.Server API
+server connInfo = renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)
 
-application = Servant.serve api server
+application connInfo = Servant.serve api (server connInfo)
 
+renderFeedItem :: FeedItem -> Html
+renderFeedItem item = li $ a ! (href . textValue . Database.link $ item) $ (toMarkup . Database.title $ item)
 
-renderFeedItem :: FeedItem -> H.Html
-renderFeedItem item = H.li $ H.a H.! (A.href . H.textValue . link $ item) $ (H.toMarkup . title $ item)
-
-renderFeed :: [FeedItem] -> H.Html
-renderFeed items = H.docTypeHtml $ do
+renderFeed :: [FeedItem] -> Html
+renderFeed items = docTypeHtml $ do
   H.head $ do
     H.title "News"
-  H.body $ do
-    H.h1 $ "News"
-    H.ul $ forM_ items renderFeedItem
+  body $ do
+    h1 $ "News"
+    ul $ forM_ items renderFeedItem
 

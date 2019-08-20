@@ -33,7 +33,7 @@ toFeedItems = catMaybes . map toFeedItem . getFeedItems
 
 report url n = putStrLn ("Imported " ++ (show n) ++ " items from " ++ url)
 
-importFeed url = do
+importFeed connectInfo url = do
   items <- downloadFeedItems url
   conn  <- connect connectInfo
   count <- insertFeedItems conn items

@@ -1,20 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
-
 module Database (
-  connectInfo, connect,
+  connect, ConnectInfo(..), defaultConnectInfo,
   migrate, migrateWith,
   FeedItem (..),
   insertFeedItems, insertFeedItem,
   selectFeedItems
 ) where
 
-
 import Control.Monad
 import Control.Applicative
 import Control.Monad.IO.Class
-
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Migration
@@ -23,7 +17,6 @@ import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.FromField
---import Database.PostgreSQL.Simple.Time
 
 import Data.Time.Clock (UTCTime)
 import qualified Data.Text as T
@@ -34,29 +27,19 @@ migrationDirectory = MigrationDirectory "db/migrations"
 initialization = MigrationContext MigrationInitialization True
 migrations = MigrationContext migrationDirectory True
 
---validate con = do
---  r <- runMigration $ MigrationContext (MigrationValidation (MigrationDirectory "db/migrations"))  True con
---  print r
-
 migrateWith conn = do
   runMigration $ initialization conn
   withTransaction conn $ runMigration $ migrations conn
   return ()
 
-connectInfo = defaultConnectInfo {
-    connectDatabase = "feeder",
-    connectUser = "feeder",
-    connectPassword = "wat"
-  }
-
-migrate = connect connectInfo >>= migrateWith
+migrate connectInfo = connect connectInfo >>= migrateWith
 
 data FeedItem = FeedItem {
     guid  :: T.Text,
     title :: T.Text,
     link  :: T.Text,
     date  :: UTCTime
-  } deriving (Generic, Show, Eq)
+  } deriving (Show, Eq)
 
 instance ToRow FeedItem where
   toRow item = [
@@ -74,7 +57,6 @@ insertFeedItemStatement = "insert into feed_item (guid, title, link, date) value
 
 insertFeedItem :: Connection -> FeedItem -> IO Int64
 insertFeedItem conn = execute conn insertFeedItemStatement
-
 
 insertFeedItems :: Connection -> [FeedItem] -> IO Int64
 insertFeedItems conn = executeMany conn insertFeedItemStatement

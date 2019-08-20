@@ -4,7 +4,7 @@ A humble RSS/Atom feed reader hobby project.
 
 ## Prerequisites
 
-You need Haskell and cabal installed. You also need a postgres server (currently the connection parameters are hardcoded). To build, I think you just need to do a `cabal install`.
+You need Haskell and cabal installed. You also need a postgres server (You can specify server connection info with the `--database-url` option). To build, I think you just need to do a `cabal install`.
 
 ## Usage
 
@@ -18,8 +18,7 @@ Available commands:
   migrate                  migrate application database
   serve                    serve web application
   import                   import Atom or RSS feed from URL
-  ```
-  
+```
 For example to initialize the database,
 ```
 $ feeder migrate
@@ -34,6 +33,6 @@ Imported 63 items from https://rss.nytimes.com/services/xml/rss/nyt/World.xml
 ```
 Then we can serve a simple page which shows all of the feed items
 ```
-$ feeder serve 
+$ feeder serve
 serving on http://localhost:3000/
 ```
