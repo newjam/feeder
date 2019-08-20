@@ -36,7 +36,6 @@ type Homepage = Html
 api :: Servant.Proxy API
 api = Servant.Proxy
 
-
 server :: FilePath -> ConnectInfo -> Servant.Server API
 server staticDir connInfo = (renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)) Servant.:<|> Servant.serveDirectoryWebApp staticDir
 

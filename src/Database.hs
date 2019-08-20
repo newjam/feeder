@@ -25,13 +25,12 @@ import Database.PostgreSQL.Simple.FromField
 import Data.Time.Clock (UTCTime)
 import qualified Data.Text as T
 
+import Data.Monoid ((<>))
+
 import Data.Int
 
 initialization = MigrationContext MigrationInitialization True
 migrations dir = MigrationContext (MigrationDirectory dir) True
-
-validateInitialization = MigrationContext (MigrationValidation MigrationInitialization) False
-validateMigrations dir = MigrationContext (MigrationValidation (MigrationDirectory dir)) False
 
 migrateWith conn = do
   runMigration $ initialization conn
@@ -41,14 +40,9 @@ migrateWith conn = do
 
 validateWith conn = do
   path <- getDataFileName "data/migrations"
-  initResult <- runMigration $ validateInitialization conn
-  case initResult of
-    MigrationError e -> return (MigrationError e)
-    MigrationSuccess -> do
-      migrateResult <- runMigration $ validateMigrations path conn
-      case migrateResult of
-        MigrationError e -> return (MigrationError e)
-        MigrationSuccess -> return MigrationSuccess
+  let init    = MigrationValidation MigrationInitialization
+  let migrate = MigrationValidation (MigrationDirectory path)
+  runMigration $ MigrationContext (init <> migrate) False conn
 
 validate connectInfo = connect connectInfo >>= validateWith
 
