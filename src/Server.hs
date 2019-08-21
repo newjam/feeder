@@ -19,6 +19,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 
 import Paths_feeder
 
+serve :: ConnectInfo -> Int -> IO ()
 serve connInfo port = do
   staticDir <- liftIO $ getDataFileName "data/static"
   Database.validate connInfo >>= \case
@@ -39,11 +40,12 @@ api = Servant.Proxy
 server :: FilePath -> ConnectInfo -> Servant.Server API
 server staticDir connInfo = (renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)) Servant.:<|> Servant.serveDirectoryWebApp staticDir
 
+application :: FilePath -> ConnectInfo -> Servant.Application
 application staticDir connInfo = do
   Servant.serve api (server staticDir connInfo)
 
 renderFeedItem :: FeedItem -> Html
-renderFeedItem item = li $ a ! (href . textValue . Database.link $ item) $ (toMarkup . Database.title $ item)
+renderFeedItem x = li $ a ! (href . textValue . Database.link $ x) $ (toMarkup . Database.title $ x)
 
 renderFeed :: [FeedItem] -> Html
 renderFeed items = docTypeHtml $ do

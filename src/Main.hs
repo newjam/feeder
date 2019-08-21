@@ -54,9 +54,9 @@ databaseUrl = option (maybeReader parseDatabaseUrl)
 
 parser = info (commands <**> helper) fullDesc
 
-main = execParser parser >>= \command -> case command of
+main = execParser parser >>= \case
   Migrate connInfo      -> Database.migrate    connInfo >>= \case
     Database.MigrationSuccess -> exitSuccess
-    Database.MigrationError e -> exitFailure
+    Database.MigrationError _ -> exitFailure
   Serve   connInfo port -> Server.serve        connInfo port
   Import  connInfo url  -> Download.importFeed connInfo url
