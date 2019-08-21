@@ -1,4 +1,4 @@
-module Download (importFeed) where
+module Download (importFeed, ImportResult(..)) where
 
 import Database
 
@@ -12,6 +12,10 @@ import Text.Feed.Query
 import Control.Monad (join)
 import Data.Maybe (catMaybes)
 
+import Data.Int (Int64)
+
+import qualified Data.Text as T
+
 downloadFeed :: String -> IO Feed
 downloadFeed url = do
   let acceptableTypes = ["application/atom+xml", "application/atom+rss"]
@@ -21,20 +25,22 @@ downloadFeed url = do
     Nothing   -> error "error parsing feed"
     Just feed -> return feed
 
-downloadFeedItems url = toFeedItems <$> downloadFeed url
-
-toFeedItem item = FeedItem
-  <$> (fmap snd . getItemId $ item)
+toFeedItem url item = FeedItem
+  <$> pure url
+  <*> (fmap snd . getItemId $ item)
   <*> getItemTitle item
   <*> getItemLink item
   <*> (join . getItemPublishDate $ item)
 
-toFeedItems = catMaybes . map toFeedItem . getFeedItems
+toFeedItems url = catMaybes . map (toFeedItem url) . getFeedItems
 
-report url n = putStrLn ("Imported " ++ (show n) ++ " items from " ++ url)
+data ImportResult = ImportResult Int64
 
 importFeed connectInfo url = do
-  items <- downloadFeedItems url
+  feed  <- downloadFeed url
   conn  <- connect connectInfo
+  let urlt = T.pack url
+  let items = toFeedItems urlt feed
+  insertFeed conn urlt (getFeedTitle feed)
   count <- insertFeedItems conn items
-  report url count
+  return $ ImportResult count

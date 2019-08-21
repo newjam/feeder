@@ -4,6 +4,7 @@ module Database (
   migrate, migrateWith,
   validate, validateWith,
   FeedItem (..),
+  insertFeed,
   insertFeedItems, insertFeedItem,
   selectFeedItems
 ) where
@@ -47,6 +48,7 @@ migrate :: ConnectInfo -> IO (MigrationResult String)
 migrate connectInfo = connect connectInfo >>= migrateWith
 
 data FeedItem = FeedItem {
+    feed  :: T.Text,
     guid  :: T.Text,
     title :: T.Text,
     link  :: T.Text,
@@ -55,6 +57,7 @@ data FeedItem = FeedItem {
 
 instance ToRow FeedItem where
   toRow item = [
+      toField . feed  $ item,
       toField . guid  $ item,
       toField . title $ item,
       toField . link  $ item,
@@ -62,10 +65,16 @@ instance ToRow FeedItem where
     ]
 
 instance FromRow FeedItem where
-  fromRow = FeedItem <$> field <*> field <*> field <*> field
+  fromRow = FeedItem <$> field <*> field <*> field <*> field <*> field
 
 insertFeedItemStatement :: Query
-insertFeedItemStatement = "insert into feed_item (guid, title, link, date) values (?, ?, ?, ?) on conflict on constraint feed_item_pkey do nothing"
+insertFeedItemStatement = "insert into feed_item (feed, guid, title, link, date) values (?, ?, ?, ?, ?) on conflict on constraint feed_item_pkey do nothing"
+
+insertFeedStatement :: Query
+insertFeedStatement = "insert into feed (link, title) values (?, ?) on conflict on constraint feed_pkey do nothing"
+
+insertFeed :: Connection -> T.Text -> T.Text -> IO Int64
+insertFeed conn url title = execute conn insertFeedStatement (url, title)
 
 insertFeedItem :: Connection -> FeedItem -> IO Int64
 insertFeedItem conn = execute conn insertFeedItemStatement
