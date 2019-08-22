@@ -8,16 +8,18 @@ import Database
 import qualified Servant
 import           Servant.HTML.Blaze
 
-import Text.Blaze.Html5 as H
-import Text.Blaze.Html5.Attributes
+import qualified Text.Blaze.Html5 as H
+import Text.Blaze.Html5 ((!))
+import qualified Text.Blaze.Html5.Attributes as A
 
 import Control.Monad(forM_)
-
 import Control.Monad.IO.Class
 
 import qualified Network.Wai.Handler.Warp as Warp
 
 import Paths_feeder
+
+import qualified Network.URI as URI
 
 serve :: ConnectInfo -> Int -> IO ()
 serve connInfo port = do
@@ -32,7 +34,7 @@ serve connInfo port = do
 
 type API = (Servant.Get '[HTML] Homepage)
       Servant.:<|> ("static" Servant.:> Servant.Raw)
-type Homepage = Html
+type Homepage = H.Html
 
 api :: Servant.Proxy API
 api = Servant.Proxy
@@ -44,15 +46,20 @@ application :: FilePath -> ConnectInfo -> Servant.Application
 application staticDir connInfo = do
   Servant.serve api (server staticDir connInfo)
 
-renderFeedItem :: FeedItem -> Html
-renderFeedItem x = li $ a ! (href . stringValue . show . Database.link $ x) $ (toMarkup . Database.title $ x)
+renderFeedItem :: FeedItem -> H.Html
+renderFeedItem x = H.li ! A.class_ "feed-items__item" $ do
+  H.a ! A.class_ "feed-items__item-link" ! (A.href . H.stringValue . show . Database.link $ x) $ (H.toMarkup . Database.title $ x)
+  case URI.uriAuthority . Database.link $ x of
+    Just auth -> H.span ! A.class_ "feed-items__item-domain" $ H.toMarkup . URI.uriRegName $ auth
+    Nothing   -> return ()
+  H.span ! A.class_ "feed-items__item-date" $ H.toMarkup . show . Database.date $ x
 
-renderFeed :: [FeedItem] -> Html
-renderFeed items = docTypeHtml $ do
+renderFeed :: [FeedItem] -> H.Html
+renderFeed items = H.docTypeHtml $ do
   H.head $ do
     H.title "News"
-    H.link ! rel "stylesheet" ! type_ "text/css" ! href "static/feeder.css"
-  body $ do
-    h1 $ "News"
-    ul $ forM_ items renderFeedItem
+    H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "static/feeder.css"
+  H.body $ do
+    H.h1 $ "News"
+    H.ul ! A.class_ "feed-items" $ forM_ items renderFeedItem
 
