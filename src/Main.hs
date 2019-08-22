@@ -61,7 +61,7 @@ main = execParser parser >>= \case
     Database.MigrationSuccess -> exitSuccess
     Database.MigrationError _ -> exitFailure
   Serve   connInfo port -> Server.serve        connInfo port
-  Import  connInfo url  -> Download.importFeed connInfo (show url) >>= \case
+  Import  connInfo url  -> Download.importFeed connInfo url >>= \case
     Download.ImportResult n -> do
       putStrLn $ "Imported " ++ (show n) ++ " items from " ++ (show url)
       exitSuccess

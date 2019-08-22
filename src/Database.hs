@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Database (
   connect, defaultConnectInfo,
   ConnectInfo(..), MigrationResult(..),
@@ -18,9 +20,12 @@ import Database.PostgreSQL.Simple.Migration
 import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToField
+import Database.PostgreSQL.Simple.FromField
 
 import Data.Time.Clock (UTCTime)
 import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BS
+import qualified Network.URI as URI
 
 import Data.Monoid ((<>))
 
@@ -48,10 +53,10 @@ migrate :: ConnectInfo -> IO (MigrationResult String)
 migrate connectInfo = connect connectInfo >>= migrateWith
 
 data FeedItem = FeedItem {
-    feed  :: T.Text,
+    feed  :: URI.URI,
     guid  :: T.Text,
     title :: T.Text,
-    link  :: T.Text,
+    link  :: URI.URI,
     date  :: UTCTime
   } deriving (Show, Eq)
 
@@ -67,13 +72,23 @@ instance ToRow FeedItem where
 instance FromRow FeedItem where
   fromRow = FeedItem <$> field <*> field <*> field <*> field <*> field
 
+instance ToField URI.URI where
+  toField = toField . show
+
+instance FromField URI.URI where
+  fromField f = \case
+    Nothing -> returnError UnexpectedNull f ""
+    Just x  -> case URI.parseURI . BS.unpack $ x of
+      Nothing  -> returnError ConversionFailed f $ BS.unpack x ++ "not a uri"
+      Just uri -> pure uri
+
 insertFeedItemStatement :: Query
 insertFeedItemStatement = "insert into feed_item (feed, guid, title, link, date) values (?, ?, ?, ?, ?) on conflict on constraint feed_item_pkey do nothing"
 
 insertFeedStatement :: Query
 insertFeedStatement = "insert into feed (link, title) values (?, ?) on conflict on constraint feed_pkey do nothing"
 
-insertFeed :: Connection -> T.Text -> T.Text -> IO Int64
+insertFeed :: Connection -> URI.URI -> T.Text -> IO Int64
 insertFeed conn url title = execute conn insertFeedStatement (url, title)
 
 insertFeedItem :: Connection -> FeedItem -> IO Int64

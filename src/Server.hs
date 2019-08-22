@@ -45,7 +45,7 @@ application staticDir connInfo = do
   Servant.serve api (server staticDir connInfo)
 
 renderFeedItem :: FeedItem -> Html
-renderFeedItem x = li $ a ! (href . textValue . Database.link $ x) $ (toMarkup . Database.title $ x)
+renderFeedItem x = li $ a ! (href . stringValue . show . Database.link $ x) $ (toMarkup . Database.title $ x)
 
 renderFeed :: [FeedItem] -> Html
 renderFeed items = docTypeHtml $ do
