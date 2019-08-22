@@ -83,7 +83,7 @@ insertFeedItems :: Connection -> [FeedItem] -> IO Int64
 insertFeedItems conn = executeMany conn insertFeedItemStatement
 
 selectFeedItemQuery :: Query
-selectFeedItemQuery = "select guid, title, link, date from feed_item order by date desc limit ? offset ?"
+selectFeedItemQuery = "select feed, guid, title, link, date from feed_item order by date desc limit ? offset ?"
 
 selectFeedItems :: MonadIO io => Connection -> io [FeedItem]
 selectFeedItems conn = liftIO $ query conn selectFeedItemQuery params where
