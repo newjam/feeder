@@ -14,7 +14,9 @@ import System.Exit
 import Database.PostgreSQL.Simple.URL (parseDatabaseUrl)
 import Database.PostgreSQL.Simple (ConnectInfo)
 
-data Command = Migrate ConnectInfo | Serve ConnectInfo Int | Import ConnectInfo String
+import Network.URI
+
+data Command = Migrate ConnectInfo | Serve ConnectInfo Int | Import ConnectInfo URI
 
 commands = subparser (migrateCommand <> serveCommand <> importCommand)
 
@@ -44,7 +46,7 @@ port = option auto (
   <> value 3000
   <> metavar "PORT")
 
-importUrl = argument str (metavar "FEED_URL")
+importUrl = argument (maybeReader parseURI) (metavar "FEED_URL")
 
 databaseUrl = option (maybeReader parseDatabaseUrl)
           ( long "database-url"
@@ -59,7 +61,7 @@ main = execParser parser >>= \case
     Database.MigrationSuccess -> exitSuccess
     Database.MigrationError _ -> exitFailure
   Serve   connInfo port -> Server.serve        connInfo port
-  Import  connInfo url  -> Download.importFeed connInfo url >>= \case
+  Import  connInfo url  -> Download.importFeed connInfo (show url) >>= \case
     Download.ImportResult n -> do
-      putStrLn ("Imported " ++ (show n) ++ " items from " ++ url)
+      putStrLn $ "Imported " ++ (show n) ++ " items from " ++ (show url)
       exitSuccess
