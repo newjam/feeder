@@ -30,7 +30,10 @@ serve connInfo port = do
       exitFailure
     MigrationSuccess -> do
       putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
-      Warp.run port (application staticDir connInfo)
+      let settings = Warp.setPort port
+                   . Warp.setHost "127.0.0.1"
+                   $ Warp.defaultSettings
+      Warp.runSettings settings (application staticDir connInfo)
 
 type API = (Servant.Get '[HTML] Homepage)
       Servant.:<|> ("static" Servant.:> Servant.Raw)
