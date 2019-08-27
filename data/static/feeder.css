@@ -13,7 +13,7 @@ body {
 .feed-items__item {
   padding: 0.2em;
   display: grid;
-  grid-template-columns: 5fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 6fr;
 }
 
 .feed-items__item-link {

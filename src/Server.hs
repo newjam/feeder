@@ -51,11 +51,11 @@ application staticDir connInfo = do
 
 renderFeedItem :: FeedItem -> H.Html
 renderFeedItem x = H.li ! A.class_ "feed-items__item" $ do
-  H.a ! A.class_ "feed-items__item-link" ! (A.href . H.stringValue . show . Database.link $ x) $ (H.toMarkup . Database.title $ x)
+  H.span ! A.class_ "feed-items__item-date" $ H.toMarkup . show . Database.date $ x
   case URI.uriAuthority . Database.link $ x of
     Just auth -> H.span ! A.class_ "feed-items__item-domain" $ H.toMarkup . URI.uriRegName $ auth
     Nothing   -> return ()
-  H.span ! A.class_ "feed-items__item-date" $ H.toMarkup . show . Database.date $ x
+  H.a ! A.class_ "feed-items__item-link" ! (A.href . H.stringValue . show . Database.link $ x) $ (H.toMarkup . Database.title $ x)
 
 renderFeed :: [FeedItem] -> H.Html
 renderFeed items = H.docTypeHtml $ do
