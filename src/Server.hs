@@ -16,6 +16,7 @@ import Control.Monad(forM_)
 import Control.Monad.IO.Class
 
 import qualified Network.Wai.Handler.Warp as Warp
+import           Network.Wai.Logger (withStdoutLogger)
 
 import Paths_feeder
 
@@ -30,10 +31,12 @@ serve connInfo port = do
       exitFailure
     MigrationSuccess -> do
       putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
-      let settings = Warp.setPort port
-                   . Warp.setHost "127.0.0.1"
-                   $ Warp.defaultSettings
-      Warp.runSettings settings (application staticDir connInfo)
+      withStdoutLogger $ \logger -> do
+        let settings = Warp.setPort   port
+                     . Warp.setHost   "127.0.0.1"
+                     . Warp.setLogger logger
+                     $ Warp.defaultSettings
+        Warp.runSettings settings (application staticDir connInfo)
 
 type API = (Servant.Get '[HTML] Homepage)
       Servant.:<|> ("static" Servant.:> Servant.Raw)

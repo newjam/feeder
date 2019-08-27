@@ -24,6 +24,7 @@ executable feeder
                        servant-server,
                        servant-blaze,
                        wai,
+                       wai-logger,
                        warp,
                        text,
                        postgresql-simple,
