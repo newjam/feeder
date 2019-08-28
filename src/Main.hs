@@ -16,7 +16,7 @@ import Database.PostgreSQL.Simple (ConnectInfo)
 
 import Network.URI
 
-data Command = Migrate ConnectInfo | Serve ConnectInfo Int | Import ConnectInfo URI
+data Command = Migrate ConnectInfo | Serve ConnectInfo Int String | Import ConnectInfo URI
 
 commands = subparser (migrateCommand <> serveCommand <> importCommand)
 
@@ -36,7 +36,7 @@ importCommand = command "import" (info
   )
 
 migrateOptions = Migrate <$> databaseUrl
-serveOptions   = Serve   <$> databaseUrl <*> port
+serveOptions   = Serve   <$> databaseUrl <*> port <*> host
 importOptions  = Import  <$> databaseUrl <*> importUrl
 
 port = option auto (
@@ -45,6 +45,13 @@ port = option auto (
   <> showDefault
   <> value 3000
   <> metavar "PORT")
+
+host = option str (
+     long "host"
+  <> help "interface to bind to"
+  <> showDefault
+  <> value "127.0.0.1"
+  <> metavar "HOST")
 
 importUrl = argument (maybeReader parseURI) (metavar "FEED_URL")
 
@@ -57,11 +64,11 @@ databaseUrl = option (maybeReader parseDatabaseUrl)
 parser = info (commands <**> helper) fullDesc
 
 main = execParser parser >>= \case
-  Migrate connInfo      -> Database.migrate    connInfo >>= \case
+  Migrate connInfo -> Database.migrate    connInfo >>= \case
     Database.MigrationSuccess -> exitSuccess
     Database.MigrationError _ -> exitFailure
-  Serve   connInfo port -> Server.serve        connInfo port
-  Import  connInfo url  -> Download.importFeed connInfo url >>= \case
+  Serve   connInfo port host -> Server.serve connInfo port host
+  Import  connInfo url -> Download.importFeed connInfo url >>= \case
     Download.ImportResult n -> do
       putStrLn $ "Imported " ++ (show n) ++ " items from " ++ (show url)
       exitSuccess

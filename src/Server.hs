@@ -18,12 +18,14 @@ import Control.Monad.IO.Class
 import qualified Network.Wai.Handler.Warp as Warp
 import           Network.Wai.Logger (withStdoutLogger)
 
+import Data.String
+
 import Paths_feeder
 
 import qualified Network.URI as URI
 
-serve :: ConnectInfo -> Int -> IO ()
-serve connInfo port = do
+serve :: ConnectInfo -> Int -> String -> IO ()
+serve connInfo port host = do
   staticDir <- liftIO $ getDataFileName "data/static"
   Database.validate connInfo >>= \case
     MigrationError e -> do
@@ -33,7 +35,7 @@ serve connInfo port = do
       putStrLn $ "serving on http://localhost:" ++ show port ++ "/"
       withStdoutLogger $ \logger -> do
         let settings = Warp.setPort   port
-                     . Warp.setHost   "127.0.0.1"
+                     . Warp.setHost   (fromString host)
                      . Warp.setLogger logger
                      $ Warp.defaultSettings
         Warp.runSettings settings (application staticDir connInfo)
