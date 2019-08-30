@@ -13,14 +13,14 @@ body {
 .feed-items__item {
   padding: 0.2em;
   display: grid;
-  grid-template-columns: 1fr 1fr 6fr;
+  grid-template-columns: 2fr 2fr 10fr;
 }
 
 .feed-items__item-link {
 }
 
-.feed-items__item-domain {
-  color: #555;
+.feed-items__item-date, .feed-items__item-domain {
+  color: #333;
 }
 
 .feed-items__item-date {

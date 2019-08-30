@@ -60,7 +60,9 @@ renderFeedItem x = H.li ! A.class_ "feed-items__item" $ do
   case URI.uriAuthority . Database.link $ x of
     Just auth -> H.span ! A.class_ "feed-items__item-domain" $ H.toMarkup . URI.uriRegName $ auth
     Nothing   -> return ()
-  H.a ! A.class_ "feed-items__item-link" ! (A.href . H.stringValue . show . Database.link $ x) $ (H.toMarkup . Database.title $ x)
+  H.a ! A.class_ "feed-items__item-link"
+      ! (A.href . H.stringValue . show . Database.link $ x)
+      $ (H.toMarkup . Database.title $ x)
 
 renderFeed :: [FeedItem] -> H.Html
 renderFeed items = H.docTypeHtml $ do
@@ -70,4 +72,5 @@ renderFeed items = H.docTypeHtml $ do
   H.body $ do
     H.h1 $ "News"
     H.ul ! A.class_ "feed-items" $ forM_ items renderFeedItem
-
+    H.script ! A.type_ "application/javascript" ! A.src "https://moment.github.io/luxon/global/luxon.min.js" $ return ()
+    H.script ! A.type_ "application/javascript" ! A.src "static/feeder.js" $ return ()
