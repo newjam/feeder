@@ -33,7 +33,8 @@ executable feeder
                        postgresql-simple-url,
                        optparse-applicative,
                        network-uri,
-                       time
+                       time,
+                       http-media
   hs-source-dirs:      src
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings

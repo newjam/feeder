@@ -7,6 +7,8 @@ import Database
 
 import qualified Servant
 import           Servant.HTML.Blaze
+import           Servant ((:<|>), (:>))
+import Network.HTTP.Media ((//))
 
 import qualified Text.Blaze.Html5 as H
 import Text.Blaze.Html5 ((!))
@@ -21,6 +23,8 @@ import           Network.Wai.Logger (withStdoutLogger)
 import Data.String
 
 import Paths_feeder
+
+import qualified Data.Text as T
 
 import qualified Network.URI as URI
 
@@ -40,15 +44,34 @@ serve connInfo port host = do
                      $ Warp.defaultSettings
         Warp.runSettings settings (application staticDir connInfo)
 
+
+
 type API = (Servant.Get '[HTML] Homepage)
-      Servant.:<|> ("static" Servant.:> Servant.Raw)
+      :<|> ("static" :> Servant.Raw)
+      :<|> ("clicks" :> Servant.Header "Ping-To" T.Text :> Servant.Post '[Ping] Servant.NoContent)
+
 type Homepage = H.Html
+
+data Ping
+
+instance Servant.Accept Ping where
+  contentType _ = "text" // "ping"
 
 api :: Servant.Proxy API
 api = Servant.Proxy
 
 server :: FilePath -> ConnectInfo -> Servant.Server API
-server staticDir connInfo = (renderFeed <$> liftIO (connect connInfo >>= selectFeedItems)) Servant.:<|> Servant.serveDirectoryWebApp staticDir
+server staticDir connInfo = (renderFeed <$> liftIO (connect connInfo >>= selectFeedItems))
+                       Servant.:<|> Servant.serveDirectoryWebApp staticDir
+                       Servant.:<|> newClick connInfo
+
+newClick :: ConnectInfo -> Maybe T.Text -> Servant.Handler Servant.NoContent
+newClick connInfo = \case
+  Nothing   -> return Servant.NoContent
+  Just link -> do
+    conn <- liftIO . connect $ connInfo
+    Database.incrementFeedItemClickCount conn link
+    return Servant.NoContent
 
 application :: FilePath -> ConnectInfo -> Servant.Application
 application staticDir connInfo = do
@@ -62,6 +85,7 @@ renderFeedItem x = H.li ! A.class_ "feed-items__item" $ do
     Nothing   -> return ()
   H.a ! A.class_ "feed-items__item-link"
       ! (A.href . H.stringValue . show . Database.link $ x)
+      ! A.ping "clicks"
       $ (H.toMarkup . Database.title $ x)
 
 renderFeed :: [FeedItem] -> H.Html

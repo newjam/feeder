@@ -8,7 +8,8 @@ module Database (
   FeedItem (..),
   insertFeed,
   insertFeedItems, insertFeedItem,
-  selectFeedItems
+  selectFeedItems,
+  incrementFeedItemClickCount
 ) where
 
 import Control.Monad.IO.Class
@@ -103,4 +104,8 @@ selectFeedItemQuery = "select feed, guid, title, link, date from feed_item order
 selectFeedItems :: MonadIO io => Connection -> io [FeedItem]
 selectFeedItems conn = liftIO $ query conn selectFeedItemQuery params where
   params = (100 :: Integer, 0 :: Integer)
+
+incrementFeedItemClickCount :: MonadIO io => Connection -> T.Text -> io Int64
+incrementFeedItemClickCount conn url = liftIO $ execute conn statement (Only url) where
+  statement = "update feed_item set click_count = click_count + 1 where link = ?"
 
